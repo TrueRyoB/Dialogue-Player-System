@@ -14,17 +14,5 @@ namespace Fujin.Data
         [Range(0.1f, 1f)] public float pitchScale = 1f;
         public int priority = 10;
         public AudioClip audioClip;
-
-        // public void Initialize(string fileName, string filePath, string clipType, bool affectedByGlobalModifier, 
-        //     float volumeScale, float pitchScale, int priority)
-        // {
-        //     this.fileName = fileName;
-        //     this.filePath = filePath;
-        //     this.clipType = (ClipType)Enum.Parse(typeof(ClipType), clipType);
-        //     this.affectedByGlobalModifier = affectedByGlobalModifier;
-        //     this.volumeScale = volumeScale;
-        //     this.pitchScale = pitchScale;
-        //     this.priority = priority;
-        // }
     }
 }
