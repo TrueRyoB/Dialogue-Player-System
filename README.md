@@ -1,4 +1,5 @@
 For an easy set up of the dialogue player system designed for Unity! Is open for a pull request!
+Update: mergesort mechanism is not working apparently... let me fix it real quick! (march 22nd, 2025)
 
 ・How easy it is
 
