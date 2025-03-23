@@ -8,6 +8,8 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
+using System.Collections.Generic;
+using System.Text;
 
 namespace Fujin.System
 {
@@ -41,13 +43,13 @@ namespace Fujin.System
                     GameObject obj = Instantiate(handle.Result);
                     _instance = obj.GetComponent<DialoguePlayer>();
                     DontDestroyOnLoad(_instance);
+                    obj.SetActive(false);
                 }
                 else
                 {
                     Debug.LogError("Failed loading a prefab DialoguePlayer");
+                    return;
                 }
-                
-                _instance.gameObject.SetActive(false);
                 
                 //Load CSV as well
                 if (_dialogueDataMatrix == null)
@@ -61,15 +63,22 @@ namespace Fujin.System
                         string dialogueDataCsv = handleCsv.Result.text;
                         
                         // Convert a text asset to a decent string matrix
-                        string[] rows = dialogueDataCsv.Split('\n');
+                        string[] rows = dialogueDataCsv.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
                         int rowCount = rows.Length;
-                        int colCount = rows[0].Split(',').Length;
+                        int colCount = SplitByComma(rows[0]).Count;
                         
                         _dialogueDataMatrix = new string[rowCount][];
                         
-                        for (int i = 0; i < rowCount; ++i)
+                        for (int i = 1; i < rowCount; ++i)
                         {
-                            var columns = rows[i].Split(',');
+                            var columns = SplitByComma(rows[i]);
+                            if (columns.Count != colCount)
+                            {
+                                Debug.LogError($"Error: csv file is corrupted at row {i}!");
+                                _dialogueDataMatrix = null;
+                                return;
+                            }
+
                             _dialogueDataMatrix[i] = new string[colCount];
                             
                             for (int j = 0; j < colCount; ++j)
@@ -88,6 +97,43 @@ namespace Fujin.System
             }
         }
 
+        private static List<string> SplitByComma(string line)
+        {
+            List<string> result = new List<string>();
+            StringBuilder builder = new StringBuilder();
+
+            int braceCount = 0;
+
+            for(int i=0; i<line.Length; ++i)
+            {
+                if (line[i] == ',' && braceCount == 0)
+                {
+                    result.Add(builder.ToString().Trim());
+                    builder.Clear();
+                }
+                else if (line[i] == '(')
+                {
+                    ++braceCount;
+                }
+                else if (line[i] == ')')
+                {
+                    --braceCount;
+                }
+                else if (line[i] == '\\')
+                {
+                    ++i;
+                }
+                else
+                {
+                    builder.Append(line[i]);
+                }
+            }
+            
+            result.Add(builder.ToString().Trim());
+
+            return result;
+        }
+
         private static int[] _indices;
         private static void SortDDataMatrix()
         {
@@ -103,7 +149,7 @@ namespace Fujin.System
         private static void MergeSortIndices(int l, int r)
         {
             if (l >= r) return;
-
+            
             int m = (l + r) / 2;
             MergeSortIndices(l, m);
             MergeSortIndices(m + 1, r);
@@ -122,12 +168,11 @@ namespace Fujin.System
 
             while (i < n1 && j < n2)
             {
-                int comp = String.Compare(_dialogueDataMatrix[_indices[l]][0], _dialogueDataMatrix[_indices[r]][0], StringComparison.Ordinal);
-                // Prioritize r when l holds the index of a bigger string
-                if (comp > 0) _indices[k++] = right[i++];
-                else _indices[k++] = left[i++];
+                int comp = String.Compare(_dialogueDataMatrix[_indices[left[i]]][0], _dialogueDataMatrix[_indices[right[j]]][0], StringComparison.Ordinal);
+                // Prioritize r when l holds the index of a smaller string
+                if (comp < 0) _indices[k++] = right[i++];
+                else _indices[k++] = left[j++];
             }
-            
         }
 
         private bool _canRead;
