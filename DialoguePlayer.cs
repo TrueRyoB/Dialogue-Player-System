@@ -150,7 +150,8 @@ namespace Fujin.System
         {
             if (l >= r) return;
             
-            int m = (l + r) / 2;
+            int m = l + (r - l) / 2;
+            Debug.Log($"l: {l}, m: {m}, r: {r}"); 
             MergeSortIndices(l, m);
             MergeSortIndices(m + 1, r);
             MergeIndices(l, m, r);
@@ -158,7 +159,7 @@ namespace Fujin.System
         private static void MergeIndices(int l, int m, int r)
         {
             // Copy substrings of both head and tail outside the range
-            int n1 = m - l + 1, n2 = r - m;
+            int n1 = m - l, n2 = r - m + 1;
             int[] left = new int[n1], right = new int[n2];
             
             Array.Copy(_indices, l, left, 0, n1);
@@ -168,10 +169,24 @@ namespace Fujin.System
 
             while (i < n1 && j < n2)
             {
-                int comp = String.Compare(_dialogueDataMatrix[_indices[left[i]]][0], _dialogueDataMatrix[_indices[right[j]]][0], StringComparison.Ordinal);
-                // Prioritize r when l holds the index of a smaller string
-                if (comp < 0) _indices[k++] = right[i++];
-                else _indices[k++] = left[j++];
+                if(String.Compare(_dialogueDataMatrix[left[i]][0], _dialogueDataMatrix[right[j]][0], StringComparison.Ordinal) < 0)
+                {
+                    _indices[k++] = left[i++];
+                }
+                else
+                {
+                    _indices[k++] = right[j++];
+                }
+            }
+
+            while (i < n1)
+            {
+                _indices[k++] = left[i++];
+            }
+
+            while (j < n2)
+            {
+                _indices[k++] = right[j++];
             }
         }
 
