@@ -8,13 +8,13 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
-using Unity.VisualScripting;
 
 namespace Fujin.System
 {
     public class DialoguePlayer : MonoBehaviour
     {
         // Singleton for managing an outside call
+        public static DialoguePlayer Instance => _instance;
         private static DialoguePlayer _instance;
         private static bool _isLoadingOrLoaded;
         private static string[][] _dialogueDataMatrix;
@@ -24,16 +24,16 @@ namespace Fujin.System
         [SerializeField] private TextMeshProUGUI textHolder;
         [SerializeField] private AudioSource audioSource;
 
-        public static async Task<DialoguePlayer> GetInstanceAsync()
+        public static async Task LoadInstanceAsync()
         {
-            if (_instance != null) return _instance;
+            if (_instance != null) return;
 
             if (!_isLoadingOrLoaded)
             {
                 _isLoadingOrLoaded = true;
                 
                 // Load the prefab
-                var handle = Addressables.LoadAssetAsync<GameObject>(AddressablesPath.DialoguePlayer);
+                var handle = Addressables.LoadAssetAsync<GameObject>(AddressablesPath.DialoguePlayerPrefab);
                 await handle.Task;
 
                 if (handle.Status == AsyncOperationStatus.Succeeded)
@@ -86,7 +86,6 @@ namespace Fujin.System
                     }
                 }
             }
-            return _instance;
         }
 
         private static int[] _indices;
