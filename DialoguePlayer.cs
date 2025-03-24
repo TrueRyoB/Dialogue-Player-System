@@ -67,7 +67,7 @@ namespace Fujin.System
                         int rowCount = rows.Length;
                         int colCount = SplitByComma(rows[0]).Count;
                         
-                        _dialogueDataMatrix = new string[rowCount][];
+                        _dialogueDataMatrix = new string[rowCount-1][];
                         
                         for (int i = 1; i < rowCount; ++i)
                         {
@@ -79,13 +79,14 @@ namespace Fujin.System
                                 return;
                             }
 
-                            _dialogueDataMatrix[i] = new string[colCount];
+                            _dialogueDataMatrix[i-1] = new string[colCount];
                             
                             for (int j = 0; j < colCount; ++j)
                             {
-                                _dialogueDataMatrix[i][j] = columns[j];
+                                _dialogueDataMatrix[i-1][j] = columns[j];
                             }
                         }
+
                         // Initialize an accelerator array for a binary search
                         SortDDataMatrix();
                     }
@@ -150,8 +151,7 @@ namespace Fujin.System
         {
             if (l >= r) return;
             
-            int m = l + (r - l) / 2;
-            Debug.Log($"l: {l}, m: {m}, r: {r}"); 
+            int m = l + (r - l) / 2 ;
             MergeSortIndices(l, m);
             MergeSortIndices(m + 1, r);
             MergeIndices(l, m, r);
@@ -159,7 +159,7 @@ namespace Fujin.System
         private static void MergeIndices(int l, int m, int r)
         {
             // Copy substrings of both head and tail outside the range
-            int n1 = m - l, n2 = r - m + 1;
+            int n1 = m - l + 1, n2 = r - m;
             int[] left = new int[n1], right = new int[n2];
             
             Array.Copy(_indices, l, left, 0, n1);
