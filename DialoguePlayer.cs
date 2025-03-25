@@ -169,7 +169,7 @@ namespace Fujin.System
 
             while (i < n1 && j < n2)
             {
-                if(String.Compare(_dialogueDataMatrix[left[i]][0], _dialogueDataMatrix[right[j]][0], StringComparison.Ordinal) < 0)
+                if(CompareID(_dialogueDataMatrix[left[i]][0], _dialogueDataMatrix[right[j]][0]) < 0)
                 {
                     _indices[k++] = left[i++];
                 }
@@ -222,9 +222,6 @@ namespace Fujin.System
             {
                 // Release everything
                 Addressables.ReleaseInstance(_instance.gameObject);
-                Addressables.Release(_dialogueDataMatrix);
-                Addressables.Release(_indices);
-                Addressables.Release(_instance);
                 _instance = null;
                 _isLoadingOrLoaded = false;
             }
@@ -253,10 +250,13 @@ namespace Fujin.System
             if (_isPlaying)
             {
                 Debug.LogError("Error: dialogue is already playing!");
+                return;
             }
             
             // Modify an ID for localization
             ModifyForLocalization(ref generalID);
+
+            generalID = "intro_en"; //TODO: test
 
             DialogueData current = new DialogueData();
             DialogueData next = new DialogueData();
@@ -264,9 +264,9 @@ namespace Fujin.System
             _dialogueDone = new TaskCompletionSource<bool>();
             SetOnScreen(true);
             
-            await PlayFrameAsync(current, next, generalID); //TODO: 正しい呼び方わからん
+            _ = PlayFrameAsync(current, next, generalID);
             await _dialogueDone.Task;
-            
+
             SetOnScreen(false);
         }
 
@@ -281,7 +281,7 @@ namespace Fujin.System
         private bool _readyToProceed;
         private bool _permissionReceived;
 
-        private async Task PlayFrameAsync(DialogueData current, DialogueData next, string firstKey = null) // Change a parameter here
+        private async Task PlayFrameAsync(DialogueData current, DialogueData next, string firstKey = null) // TODO:
         {
             // Wait for a load
             if (!String.IsNullOrEmpty(firstKey))
@@ -292,16 +292,31 @@ namespace Fujin.System
             // Upload information to sprite
             if (current.HasImage)
             {
+                if (pictureHolder == null)
+                {
+                    Debug.LogError("Picture holder is null");
+                    return;
+                }
                 pictureHolder.sprite = current.Image;
             }
 
             if (current.HasColor)
             {
+                if (backgroundHolder == null)
+                {
+                    Debug.LogError("Background holder is null");
+                    return;
+                }
                 backgroundHolder.color = current.Color;
             }
 
             if (current.HasBGM)
             {
+                if (backgroundHolder == null)
+                {
+                    Debug.LogError("Audio source is null");
+                    return;
+                }
                 AudioManager.Instance.Play(audioSource, current.BGMInfo);
             }
 
@@ -314,17 +329,23 @@ namespace Fujin.System
             {
                 await next.Initialize(GetDialogueInfoFromID(current.NextID));
             }
+            
+            Debug.Log("debug starts from here");
+            await Task.Delay(600);
+            _dialogueDone.SetResult(true);
+            Debug.Log("debug ends here");
+            return;
 
             while (_textPlayCoroutine != null)
             {
-                await Task.Delay(0); // waiting for a text play completion
+                await Task.Delay(1); // waiting for a text play completion
             }
             
             // Waiting for a player input
             _readyToProceed = true;
             while (!_permissionReceived)
             {
-                await Task.Delay(0); 
+                await Task.Delay(1); 
             }
             
             // Reset the current dialogue information
@@ -347,13 +368,13 @@ namespace Fujin.System
             while (l <= r)
             {
                 m = (l + r) / 2;
-                int comp = String.Compare(_dialogueDataMatrix[_indices[m]][0], id, StringComparison.Ordinal);
+                int comp = CompareID(_dialogueDataMatrix[_indices[m]][0], id);
 
                 if (comp == 0)
                 {
                     break;
                 }
-                else if (comp < l)
+                else if (comp < 0)
                 {
                     l = m + 1;
                 }
@@ -363,13 +384,59 @@ namespace Fujin.System
                 }
             }
 
-            if (l <= r)
+            if (l > r)
             {
                 Debug.LogError($"Error: No row with an ID {id} was found");
                 return null;
             }
 
-            return _dialogueDataMatrix[m];
+            return _dialogueDataMatrix[_indices[m]];
+        }
+
+        private static int CompareID(string id1, string id2)
+        {
+            int i = 0;
+            while (i < id1.Length && i < id2.Length && id1[i] == id2[i] && !Char.IsNumber(id1[i]))
+            {
+                ++i;
+            }
+
+            if (i >= id1.Length || i >= id2.Length)
+            {
+                return id1.Length.CompareTo(id2.Length);
+            }
+
+            if (!Char.IsNumber(id1[i]) || !Char.IsNumber(id2[i]))
+            {
+                return String.Compare(id1, id2, StringComparison.Ordinal);
+            }
+            
+            int end1 = i, end2 = i;
+
+            while (end1 < id1.Length && Char.IsNumber(id1[end1]))
+            {
+                ++end1;
+            }
+
+            while (end2 < id2.Length && Char.IsNumber(id2[end2]))
+            {
+                ++end2;
+            }
+
+            if (int.TryParse(id1.Substring(i, end1 - i), out int n1) && int.TryParse(id2.Substring(i, end2 - i), out int n2))
+            {
+                if (n1 != n2)
+                {
+                    return n1.CompareTo(n2);
+                }
+                
+                return String.Compare(id1.Substring(end1), id2.Substring(end2), StringComparison.Ordinal);
+            }
+            else
+            {
+                Debug.LogError("Error: failed to parse string to int");
+                return String.Compare(id1, id2, StringComparison.Ordinal);
+            }
         }
     }
 }
