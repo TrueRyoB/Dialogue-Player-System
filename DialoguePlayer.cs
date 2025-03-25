@@ -103,26 +103,26 @@ namespace Fujin.System
             List<string> result = new List<string>();
             StringBuilder builder = new StringBuilder();
 
-            int braceCount = 0;
+            bool inQuotes = false;
 
-            for(int i=0; i<line.Length; ++i)
+            for (int i = 0; i < line.Length; ++i)
             {
-                if (line[i] == ',' && braceCount == 0)
+                if (line[i] == '\"')
+                {
+                    if (i + 1 < line.Length && line[i + 1] == '\"')
+                    {
+                        builder.Append('\"');
+                        i++;
+                    }
+                    else
+                    {
+                        inQuotes = !inQuotes; 
+                    }
+                }
+                else if (line[i] == ',' && !inQuotes)
                 {
                     result.Add(builder.ToString().Trim());
                     builder.Clear();
-                }
-                else if (line[i] == '(')
-                {
-                    ++braceCount;
-                }
-                else if (line[i] == ')')
-                {
-                    --braceCount;
-                }
-                else if (line[i] == '\\')
-                {
-                    ++i;
                 }
                 else
                 {
@@ -204,11 +204,11 @@ namespace Fujin.System
 
         private void SetOnScreen(bool status)
         {
-            // Switch the BGM and the input action
-            AudioManager.Instance.PauseEveryBGMOver(0.3f);
-            
             // Display/UnDisplay the gameObject on screen
             gameObject.SetActive(status);
+            
+            // Switch the BGM
+            AudioManager.Instance.PauseEveryBGMOver(0.3f);
 
             _isPlaying = status;
 
@@ -236,10 +236,10 @@ namespace Fujin.System
             switch (PreferenceDataManager.Instance.Language)
             {
                 case Language.English:
-                    generalID = String.Join(generalID, "_en");
+                    generalID += "_en";
                     break;
                 case Language.Japanese:
-                    generalID = String.Join(generalID, "_jp");
+                    generalID += "_jp";
                     break;
             }
         }
@@ -256,18 +256,13 @@ namespace Fujin.System
             // Modify an ID for localization
             ModifyForLocalization(ref generalID);
 
-            generalID = "intro_en"; //TODO: test
-
             DialogueData current = new DialogueData();
             DialogueData next = new DialogueData();
             
             _dialogueDone = new TaskCompletionSource<bool>();
-            SetOnScreen(true);
             
             _ = PlayFrameAsync(current, next, generalID);
             await _dialogueDone.Task;
-
-            SetOnScreen(false);
         }
 
         private IEnumerator PlayTextCoroutine(string text)
@@ -309,6 +304,11 @@ namespace Fujin.System
                 }
                 backgroundHolder.color = current.Color;
             }
+            
+            if (!_isPlaying)
+            {
+                SetOnScreen(true);
+            }
 
             if (current.HasBGM)
             {
@@ -329,12 +329,6 @@ namespace Fujin.System
             {
                 await next.Initialize(GetDialogueInfoFromID(current.NextID));
             }
-            
-            Debug.Log("debug starts from here");
-            await Task.Delay(600);
-            _dialogueDone.SetResult(true);
-            Debug.Log("debug ends here");
-            return;
 
             while (_textPlayCoroutine != null)
             {
@@ -348,6 +342,8 @@ namespace Fujin.System
                 await Task.Delay(1); 
             }
             
+            _permissionReceived = false;
+            
             // Reset the current dialogue information
             current.Reset();
             
@@ -358,6 +354,7 @@ namespace Fujin.System
             else if (_dialogueDone != null && !_dialogueDone.Task.IsCompleted)
             {
                 _dialogueDone.SetResult(true);
+                SetOnScreen(false);
             }
         }
 
