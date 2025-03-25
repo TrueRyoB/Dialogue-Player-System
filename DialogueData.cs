@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using System.Globalization;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using System.Threading.Tasks;
@@ -105,10 +104,22 @@ namespace Fujin.Data
             
             try
             {
-                int x = int.Parse(values[0].Trim(), CultureInfo.InvariantCulture);
-                int y = int.Parse(values[1].Trim(), CultureInfo.InvariantCulture);
-                int z = int.Parse(values[2].Trim(), CultureInfo.InvariantCulture);
-                int w = int.Parse(values[3].Trim(), CultureInfo.InvariantCulture);
+                if (!TryParseString(values[0], out int x))
+                {
+                    Debug.LogError($"Failed to parse x: {values[0]}");
+                }
+                if (!TryParseString(values[1], out int y))
+                {
+                    Debug.LogError($"Failed to parse y: {values[1]}");
+                }
+                if (!TryParseString(values[2], out int z))
+                {
+                    Debug.LogError($"Failed to parse z: {values[2]}");
+                }
+                if (!TryParseString(values[3], out int w))
+                {
+                    Debug.LogError($"Failed to parse w: {values[3]}");
+                }
                 
                 vec = new Vector4(x / 255f, y / 255f, z / 255f, w / 100f);
 
@@ -130,5 +141,25 @@ namespace Fujin.Data
         }
         
         private bool IsInRange01(float input) => input is >= 0f and <= 1f;
+
+        private bool TryParseString(string input, out int result)
+        {
+            result = 0;
+            int i = 0, n = input.Length;
+
+            while (i < n && !Char.IsNumber(input[i]))
+            {
+                ++i;
+            }
+
+            int j = i;
+
+            while (j < n && Char.IsNumber(input[j]))
+            {
+                ++j;
+            }
+            
+            return int.TryParse(input.Substring(i, j-i), out result);
+        }
     }
 }
